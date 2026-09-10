@@ -32,3 +32,16 @@ Used by `/wayfinder`. The **map** is a file with one **child** file per ticket.
 - **Frontier**: scan `.scratch/<effort>/issues/` for files that are open, unblocked, and unclaimed; first by number wins.
 - **Claim**: set `Status: claimed` and save before any work.
 - **Resolve**: append the answer under an `## Answer` heading, set `Status: resolved`, then append a context pointer (gist + link) to the map's Decisions-so-far in `map.md`.
+
+## 交付记录
+
+每项实现工作使用原 ticket；简单工作可只建一张 ticket，不必额外 spec。完成前在 `## 交付记录` 中记录：
+
+- 实现结果：实际完成范围。
+- 验证：命令、结果、证据位置；未验证项及原因。
+- 文档同步：修改的文档，或无需修改的原因。
+- 代码版本：实现提交 SHA 或可追溯的 Git 历史。不要试图把包含本记录的提交 SHA 写入它自身；提交后通过 Git 历史定位，发布时记录实际部署 SHA。
+- 发布状态：未发布 / 已发布 / 失败，不能用开发完成代替上线。
+- 发布后追加：时间、部署 SHA、健康检查、迁移状态、回滚位置、遗留问题。
+
+记录纳入 Git；测试日志只保存必要摘要或持久证据链接，不提交密钥和临时产物。多个 ticket 同批发布时，在一张协调 ticket 中保存发布记录，其余引用它。线上发布记录可在发布后用独立文档提交保存，明确它记录的部署 SHA，不因此再次触发应用发布。

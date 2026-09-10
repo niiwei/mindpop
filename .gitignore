@@ -62,3 +62,6 @@ application-prod.properties
 *.p12
 *.pfx
 .ssh/
+
+# Local application credentials (restore from example)
+src/main/resources/application.properties

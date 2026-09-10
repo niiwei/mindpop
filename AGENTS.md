@@ -13,7 +13,7 @@
 
 - `src/` 存放 Spring Boot 运行代码和静态资源，保留既有目录结构。
 - `mcp-server/` 存放独立 TypeScript stdio MCP 适配器；源码和测试位于 `src/`、`tests/`，`dist/` 与 `node_modules/` 不纳入 Git。
-- `scripts/` 存放可重复的本地构建和生产发布脚本；真实主机、用户名及密钥路径只写入 `.env.deploy`。
+- `scripts/` 存放可重复的本地构建和生产发布脚本；部署凭据写入 `.env.deploy`，本地启动配置写入 `.env.local`；均不纳入 Git。
 - `.github/workflows/` 存放 GitHub CI；合并 `main` 前必须通过 Java 与 MCP 测试。
 - `docs/agents/` 存放工程技能配置；`CONTEXT.md` 存放领域术语；`docs/adr/` 存放编号决策记录。
 - `.scratch/<feature>/` 存放可版本管理的需求和任务文档，功能名使用英文 kebab-case；需求为 `spec.md`，任务为 `issues/NN-slug.md`。
@@ -30,3 +30,11 @@
 - `src/main/resources/application.properties`、`wechat_notes_to_quiz/wechat_notes_to_quiz.py` 和 `.env.deploy` 含本机凭据并排除 Git。
 - 对应 `.example` 文件纳入版本管理；恢复工作区时复制为原文件名并通过环境变量配置密钥。
 - 发布脚本不得输出数据库密码、JWT、PAT 或 SSH 私钥内容。
+
+## 开发与交付入口
+
+- 本地调试前先读 `docs/internal/LOCAL_DEVELOPMENT.md`，运行 `./start.sh --check`；完整后端使用 `./start.sh`，不得用静态服务器代替 API、登录和数据库验收。
+- 每次完成实现后按 neat-freak 的日常模式同步受影响文档，并在原 ticket 补交付记录；无文档变化需说明原因。全项目整理只在明确阶段收尾时执行。
+- 交付记录格式见 `docs/agents/issue-tracker.md`；必须区分已验证、未验证和未发布。发布后追加实际部署 SHA、检查结果及回滚位置。
+- SubAgent 读取适用项目规则及任务文档，返回改动文件、验证命令与结果、遗留问题。主 Agent 负责集成和最终提交；同一 worktree 的代码写入串行。
+- `docs/internal/LOCAL_DEVELOPMENT.md` 保存当前运行方法；历史过程保留在 ticket。不要将密钥或机器专属路径复制到共享文档。

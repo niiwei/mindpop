@@ -87,25 +87,10 @@ git push
 ## 环境配置
 
 ### 本地开发
-#### 1. 快捷启动（推荐）
-- **Windows**: 双击 `start.bat`。它会自动设置环境变量并启动应用。
-- **PowerShell**: 运行 `.\start.ps1`。支持自动释放端口并设置环境变量。
 
-#### 2. Maven 命令行启动
-适用场景: 无 IDE 环境或需要纯命令行构建时。
-- **CMD**:
-  ```bash
-  set MYSQL_HOST=your_server_ip && .\mvnw.cmd spring-boot:run
-  ```
-- **PowerShell**:
-  ```powershell
-  $env:MYSQL_HOST="your_server_ip"; .\mvnw.cmd spring-boot:run
-  ```
-
-#### 3. IDE 启动 (IntelliJ IDEA)
-- 在 **Run/Debug Configurations** -> **Environment variables** 中添加：
-  `MYSQL_HOST=your_server_ip`
-- 运行 `TypingQuizApplication.java`。
+统一入口和当前配置方法以 [LOCAL_DEVELOPMENT.md](LOCAL_DEVELOPMENT.md) 为准。
+Mac/Linux 使用 `./start.sh --check` 后执行 `./start.sh`；Windows 使用 `start.bat`。
+完整验收必须运行后端，静态页面测试不能证明数据库、登录或 API 可用。
 
 ### 云端部署
 

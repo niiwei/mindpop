@@ -68,30 +68,13 @@
 - Java 11+
 - MySQL 8.0（本地或远程）
 
-### 一键启动
+### 本地启动
 
-**Windows：**
-```bash
-start.bat
-```
+Mac/Linux 从工程根目录执行 `./start.sh --check`，再执行 `./start.sh`。
+首次恢复配置、Java 11 发现、连接云端数据库及完整验收步骤见
+[本地开发说明](docs/internal/LOCAL_DEVELOPMENT.md)。Windows 保留 `start.bat` 入口。
 
-**Mac/Linux：**
-```bash
-./start.sh
-```
-
-访问 http://localhost:8080
-
-### 手动启动
-
-```bash
-# 设置数据库地址
-export MYSQL_HOST=your_mysql_host  # Linux/Mac
-set MYSQL_HOST=your_mysql_host     # Windows
-
-# 启动应用
-./mvnw spring-boot:run
-```
+访问 http://localhost:8080（若配置了其他端口，以实际配置为准）。
 
 ---
 
