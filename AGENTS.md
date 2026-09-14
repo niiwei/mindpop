@@ -14,6 +14,7 @@
 - `src/` 存放 Spring Boot 运行代码和静态资源，保留既有目录结构。
 - `mcp-server/` 存放独立 TypeScript stdio MCP 适配器；源码和测试位于 `src/`、`tests/`，`dist/` 与 `node_modules/` 不纳入 Git。
 - `scripts/` 存放可重复的本地构建和生产发布脚本；部署凭据写入 `.env.deploy`，本地启动配置写入 `.env.local`；均不纳入 Git。
+- `deploy/` 存放生产环境的反向代理与系统服务配置**副本**（如 `deploy/nginx/`），用于服务器重建或迁移时快速恢复；只存配置文本与安装说明，不存证书私钥、密钥、密码或任何机器专属凭据。
 - `.github/workflows/` 存放 GitHub CI；合并 `main` 前必须通过 Java 与 MCP 测试。
 - `docs/agents/` 存放工程技能配置；`CONTEXT.md` 存放领域术语；`docs/adr/` 存放编号决策记录。
 - `.scratch/<feature>/` 存放可版本管理的需求和任务文档，功能名使用英文 kebab-case；需求为 `spec.md`，任务为 `issues/NN-slug.md`。

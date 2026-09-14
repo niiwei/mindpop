@@ -22,6 +22,14 @@ cp .env.deploy.example .env.deploy
 | 环境配置 | `/etc/mindpop/mindpop.env` |
 | 公网入口 | `https://mindpop.top` |
 
+## 反向代理（nginx）
+
+公网入口由服务器上的 nginx 承担：80 与 443 均指向本应用，`www.mindpop.top` 统一 `301` 到裸域。生产使用宝塔面板托管的 nginx，vhost 位于 `/www/server/panel/vhost/nginx/`。
+
+配置副本、部署步骤、验证命令与回滚方式见 **[`deploy/nginx/README.md`](deploy/nginx/README.md)**。
+
+> ⚠️ 服务器重建或迁移后，务必按该文档恢复 vhost 并跑一遍六种写法验证。常见故障：80 端口缺少本站 server 块时，明文 http 会落到宝塔默认站（WordPress）；应用生成的 `http://` 跳转未被改写时，浏览器会掉回 80 端口并 `404`。**这两种情况在本机浏览器上往往因缓存或 HSTS 而看不出来，只有全新访客会踩到。**
+
 ## 标准发布流程
 
 1. 从最新 `main` 创建 `codex/<topic>` 功能分支。
@@ -66,6 +74,16 @@ curl --silent --output /dev/null --write-out '%{http_code}\n' https://mindpop.to
 ```
 
 最后一条未携带 PAT 时应返回 `401`。
+
+公网可达性需覆盖**全部常见写法**（无 `www` / 有 `www`、`http` / `https`），六种写法都应 `200` 并最终落在 `https://mindpop.top/home.html`：
+
+```bash
+for u in http://mindpop.top/ http://www.mindpop.top/ https://mindpop.top/ \
+         https://www.mindpop.top/ http://mindpop.top/login.html https://mindpop.top/login.html; do
+  printf '%-34s ' "$u"
+  curl -s -m 12 -L -o /dev/null -w 'HTTP %{http_code}  →  %{url_effective}\n' "$u"
+done
+```
 
 ## 回滚
 
