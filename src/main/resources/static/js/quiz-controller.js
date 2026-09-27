@@ -9,12 +9,14 @@ class QuizController {
         this.answers = [];
         this.foundAnswers = new Set();
         this.foundParts = new Map(); // answerId -> Set(partIndex)
+        this.revealedAnswers = new Set();
         this.timer = null;
         this.isQuizActive = false;
         this.apiBase = '/api';
         this.quizType = 'TYPING'; // TYPING or FILL_BLANK
         this.fillBlankQuiz = null;
         this.filledBlanks = new Map(); // blankIndex -> userAnswer
+        this.revealedBlanks = new Set();
         this.settings = this.loadSettings(); // 加载用户设置
 
         this.groupMode = false;
@@ -167,7 +169,7 @@ class QuizController {
 
             const isEmptyPlay = mode === 'play' && !isFilled;
             const baseText = (isEmptyPlay ? correctText : (isFilled ? answerText : correctText)) || '';
-            const commentToShow = (mode === 'giveup') ? comment : (isFilled ? comment : '');
+            const commentToShow = (mode === 'giveup' || mode === 'revealed' || isFilled) ? comment : '';
 
             const wrapperRect = wrapper.getBoundingClientRect();
             const availableFirst = Math.max(0, containerRight - wrapperRect.left);
@@ -264,6 +266,7 @@ class QuizController {
                 if (mode === 'giveup' && !isFilled) {
                     span.classList.add('missed');
                 }
+                if (mode === 'revealed') span.classList.add('revealed');
 
                 span.setAttribute('data-blank-index', String(blankIndex));
                 span.onclick = () => this.focusFillBlankInput();
@@ -272,6 +275,15 @@ class QuizController {
                 span.style.width = widthPx + 'px';
                 // 未作答时不显示文本内容，只显示占位样式
                 span.textContent = isEmptyPlay ? '' : mainChunk;
+
+                if (isEmptyPlay && isFirstSegment) {
+                    const revealButton = document.createElement('button');
+                    revealButton.type = 'button';
+                    revealButton.className = 'fill-blank-reveal-button';
+                    revealButton.setAttribute('aria-label', `显示答案 ${blankIndex + 1}`);
+                    revealButton.onclick = event => { event.stopPropagation(); this.revealBlank(blankIndex); };
+                    span.appendChild(revealButton);
+                }
 
                 if (commentChunk) {
                     const c = document.createElement('span');
@@ -555,7 +567,9 @@ class QuizController {
     resetQuizUI() {
         this.foundAnswers.clear();
         this.foundParts.clear();
+        this.revealedAnswers.clear();
         this.filledBlanks.clear();
+        this.revealedBlanks.clear();
         
         // 重置输入框
         const input = document.getElementById('answer-input');
@@ -624,7 +638,9 @@ class QuizController {
         this.quizId = quizId;
         this.foundAnswers.clear();
         this.foundParts.clear();
+        this.revealedAnswers.clear();
         this.filledBlanks.clear();
+        this.revealedBlanks.clear();
 
         const quizResponse = await fetch(`${this.apiBase}/quizzes/${this.quizId}`, {
             headers: this.getAuthHeaders()
@@ -672,7 +688,7 @@ class QuizController {
         } else {
             if (answersGrid) {
                 answersGrid.style.display = 'grid';
-                UIRenderer.renderAnswersGrid(this.answers, this.foundAnswers, this.settings.showCommentPreview, this.foundParts);
+                UIRenderer.renderAnswersGrid(this.answers, this.foundAnswers, this.settings.showCommentPreview, this.foundParts, this.revealedAnswers);
             }
             if (fillBlankSection) fillBlankSection.style.display = 'none';
             UIRenderer.updateScore(this.foundAnswers.size, this.answers.length);
@@ -773,11 +789,12 @@ class QuizController {
             result += escapeHTML(fullText.substring(lastIndex, item.startIndex));
             
             const isFilled = this.filledBlanks.has(i);
+            const isRevealed = this.revealedBlanks.has(i);
             const userAnswer = isFilled ? this.filledBlanks.get(i) : '';
             const isCurrent = i === this.currentBlankIndex;
             
             // 构造填空包装器的 HTML (这是我们主动插入的标签，不应被转义)
-            const wrapperHTML = this.createFillBlankWrapper(i, item, userAnswer, isFilled, isCurrent);
+            const wrapperHTML = this.createFillBlankWrapper(i, item, userAnswer, isFilled, isCurrent, isRevealed);
             result += wrapperHTML;
             
             lastIndex = item.endIndex;
@@ -832,8 +849,8 @@ class QuizController {
     /**
      * 创建填空题包装器 HTML（游戏模式）
      */
-    createFillBlankWrapper(index, item, userAnswer, isFilled, isCurrent) {
-        const mode = 'play';
+    createFillBlankWrapper(index, item, userAnswer, isFilled, isCurrent, isRevealed = false) {
+        const mode = isRevealed ? 'revealed' : 'play';
         const filled = isFilled ? '1' : '0';
         const state = isCurrent ? 'current' : '';
         const answer = encodeURIComponent(userAnswer || '');
@@ -870,7 +887,7 @@ class QuizController {
         const normalizedUserAnswer = this.normalizeText(userAnswer);
         
         for (let i = 0; i < blanks.length; i++) {
-            if (this.filledBlanks.has(i)) continue;
+            if (this.filledBlanks.has(i) || this.revealedBlanks.has(i)) continue;
             
             const normalizedCorrectAnswer = this.normalizeText(blanks[i].correctAnswer);
             
@@ -880,7 +897,7 @@ class QuizController {
                 this.clearInput();
                 this.renderFillBlankQuiz();
                 this.updateFillBlankScore();
-                if (this.filledBlanks.size === blanks.length) this.endQuiz();
+                if (this.filledBlanks.size + this.revealedBlanks.size === blanks.length) this.endQuiz();
                 return;
             }
         }
@@ -891,6 +908,30 @@ class QuizController {
         const total = this.fillBlankQuiz ? this.fillBlankQuiz.blanksCount : 0;
         UIRenderer.updateScore(found, total);
         this.renderGroupProgress();
+    }
+
+    revealAnswer(answerId) {
+        if (!this.isQuizActive || this.quizType !== 'TYPING') return false;
+        const answer = this.answers.find(item => item.id === answerId);
+        if (!answer || this.foundAnswers.has(answerId) || this.revealedAnswers.has(answerId)) return false;
+        this.revealedAnswers.add(answerId);
+        UIRenderer.highlightAnswer(answer, this.foundAnswers, this.foundParts, this.settings.showCommentPreview, this.revealedAnswers);
+        UIRenderer.showFeedback('已显示答案，不计分', 'hint');
+        this.renderGroupProgress();
+        if (this.foundAnswers.size + this.revealedAnswers.size === this.answers.length) this.endQuiz();
+        return true;
+    }
+
+    revealBlank(index) {
+        if (!this.isQuizActive || this.quizType !== 'FILL_BLANK') return false;
+        const blank = this.fillBlankQuiz?.blanks?.[index];
+        if (!blank || this.filledBlanks.has(index) || this.revealedBlanks.has(index)) return false;
+        this.revealedBlanks.add(index);
+        this.renderFillBlankQuiz();
+        this.updateFillBlankScore();
+        UIRenderer.showFeedback(`已显示答案：${blank.correctAnswer}（不计分）`, 'hint');
+        if (this.filledBlanks.size + this.revealedBlanks.size === this.fillBlankQuiz.blanks.length) this.endQuiz();
+        return true;
     }
 
     async endQuiz(isGiveUp = false) {
@@ -1138,6 +1179,7 @@ class QuizController {
         for (const match of matches) {
             const answer = this.answers.find(item => item.id === match.answerId);
             if (!answer) continue;
+            if (this.revealedAnswers.has(answer.id)) continue;
             const partIndices = Array.isArray(match.partIndices) ? match.partIndices : [0];
             const found = this.foundParts.get(answer.id) || new Set();
             for (const partIndex of partIndices) {
@@ -1155,10 +1197,10 @@ class QuizController {
         }
         for (const answerId of affectedAnswers) {
             const answer = this.answers.find(item => item.id === answerId);
-            if (answer) UIRenderer.highlightAnswer(answer, this.foundAnswers, this.foundParts, this.settings.showCommentPreview);
+            if (answer) UIRenderer.highlightAnswer(answer, this.foundAnswers, this.foundParts, this.settings.showCommentPreview, this.revealedAnswers);
         }
         UIRenderer.updateScore(this.foundAnswers.size, this.answers.length);
-        if (newlyMatched === 0) UIRenderer.showFeedback('已回答', 'duplicate');
+        if (newlyMatched === 0) UIRenderer.showFeedback(matches.some(match => this.revealedAnswers.has(match.answerId)) ? '答案已显示，不计分' : '已回答', 'duplicate');
         else UIRenderer.showFeedback(newlyCompleted > 0 ? '正确!' : '答对一个要点', 'success');
         this.clearInput();
         this.renderGroupProgress();

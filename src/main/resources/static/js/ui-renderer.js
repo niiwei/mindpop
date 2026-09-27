@@ -9,7 +9,7 @@ class UIRenderer {
      * @param {Set} foundAnswers - 已找到的答案ID集合
      * @param {boolean} showCommentPreview - 是否显示注释预览
      */
-    static renderAnswersGrid(answers, foundAnswers, showCommentPreview = false, foundParts = new Map()) {
+    static renderAnswersGrid(answers, foundAnswers, showCommentPreview = false, foundParts = new Map(), revealedAnswers = new Set()) {
         const grid = document.getElementById('answers-grid');
         grid.innerHTML = '';
 
@@ -20,25 +20,24 @@ class UIRenderer {
             item.dataset.content = answer.content;
             item.dataset.comment = answer.comment || '';
             
-            this.renderAnswerItem(item, answer, foundAnswers, foundParts, showCommentPreview);
+            this.renderAnswerItem(item, answer, foundAnswers, foundParts, showCommentPreview, false, revealedAnswers);
             grid.appendChild(item);
         });
     }
 
-    static renderAnswerItem(item, answer, foundAnswers, foundParts, showCommentPreview = false, revealAll = false) {
+    static renderAnswerItem(item, answer, foundAnswers, foundParts, showCommentPreview = false, revealAll = false, revealedAnswers = new Set()) {
         item.replaceChildren();
-        item.classList.remove('found', 'missed');
+        item.classList.remove('found', 'missed', 'revealed');
         const complete = foundAnswers.has(answer.id);
+        const revealed = revealedAnswers.has(answer.id);
         const matched = foundParts.get(answer.id) || new Set();
         const hasPartial = answer.formatVersion === 2 && matched.size > 0 && !complete;
-        if (!complete && !hasPartial && !revealAll) {
-            item.textContent = '•';
-            return;
-        }
+        if (!complete && !hasPartial && !revealAll && !revealed) item.textContent = '•';
         if (!complete && revealAll) item.classList.add('missed');
         else if (complete) item.classList.add('found');
+        else if (revealed) item.classList.add('revealed');
 
-        if (answer.formatVersion === 2 && Array.isArray(answer.parts) && !complete && !revealAll) {
+        if (answer.formatVersion === 2 && Array.isArray(answer.parts) && hasPartial && !complete && !revealAll && !revealed) {
             answer.parts.forEach((part, index) => {
                 const span = document.createElement('span');
                 if (matched.has(index)) {
@@ -50,7 +49,7 @@ class UIRenderer {
                 }
                 item.appendChild(span);
             });
-        } else {
+        } else if (complete || revealAll || revealed) {
             const content = document.createElement('span');
             content.className = 'answer-content';
             if (answer.formatVersion === 2 && Array.isArray(answer.parts)) {
@@ -60,11 +59,19 @@ class UIRenderer {
             }
             item.appendChild(content);
         }
-        if ((complete || revealAll) && showCommentPreview && answer.comment) {
+        if ((complete || revealAll || revealed) && showCommentPreview && answer.comment) {
             const comment = document.createElement('span');
             comment.className = 'answer-comment';
             comment.textContent = `#${answer.comment}#`;
             item.appendChild(comment);
+        }
+        if (!complete && !revealAll && !revealed) {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'reveal-answer-button';
+            button.setAttribute('aria-label', `显示答案 ${answer.id}`);
+            button.onclick = () => window.quizController?.revealAnswer(answer.id);
+            item.appendChild(button);
         }
     }
 
@@ -82,10 +89,10 @@ class UIRenderer {
      * @param {number} answerId - 答案ID
      * @param {boolean} showCommentPreview - 是否显示注释预览
      */
-    static highlightAnswer(answer, foundAnswers, foundParts, showCommentPreview = false) {
+    static highlightAnswer(answer, foundAnswers, foundParts, showCommentPreview = false, revealedAnswers = new Set()) {
         const item = document.getElementById(`answer-${answer.id}`);
         if (item) {
-            this.renderAnswerItem(item, answer, foundAnswers, foundParts, showCommentPreview);
+            this.renderAnswerItem(item, answer, foundAnswers, foundParts, showCommentPreview, false, revealedAnswers);
         }
     }
 
