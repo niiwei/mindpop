@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>敲脑壳 MindPop - 测验</title>
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/style.css?v=20260927-1">
     <link rel="stylesheet" href="css/navigation.css">
     <!-- Brand Logo & Favicon -->
     <link rel="icon" type="image/svg+xml" href="assets/img/brand/logo/主logo.svg">
@@ -123,8 +123,8 @@
     <script src="js/theme.js?v=20260216-9"></script>
     <script src="js/review-api.js?v=20260216-9"></script>
     <script src="js/timer.js?v=20260216-9"></script>
-    <script src="js/ui-renderer.js?v=20260216-9"></script>
-    <script src="js/quiz-controller.js?v=20260216-9"></script>
+    <script src="js/ui-renderer.js?v=20260927-1"></script>
+    <script src="js/quiz-controller.js?v=20260927-1"></script>
     <script src="js/main.js?v=20260216-9"></script>
 
     <!-- 复习评级面板 - 仅复习模式显示 -->
@@ -338,7 +338,7 @@
             }
         }
 
-        // 提示功能：显示一个未答出的答案
+        // 提示只揭示下一项，不算答对。
         function showHint() {
             // 获取全局 quizController 实例
             if (!window.quizController || !window.quizController.isQuizActive) {
@@ -348,54 +348,10 @@
 
             const controller = window.quizController;
             
-            if (controller.quizType === 'FILL_BLANK') {
-                // 填空题模式：找到一个未填写的空
-                const blanks = controller.fillBlankQuiz?.blanks || [];
-                let revealed = false;
-                
-                for (let i = 0; i < blanks.length; i++) {
-                    if (!controller.filledBlanks.has(i)) {
-                        // 显示这个答案
-                        const answer = blanks[i].correctAnswer;
-                        controller.filledBlanks.set(i, answer);
-                        controller.renderFillBlankQuiz();
-                        controller.updateFillBlankScore();
-                        UIRenderer.showFeedback(`提示: ${answer}`, 'hint');
-                        revealed = true;
-                        
-                        // 检查是否全部完成
-                        if (controller.filledBlanks.size === blanks.length) {
-                            controller.endQuiz();
-                        }
-                        break;
-                    }
-                }
-                
-                if (!revealed) {
-                    alert('已经没有可提示的答案了');
-                }
-            } else {
-                // 打字题模式：找到一个未答出的答案
-                const answers = controller.answers || [];
-                let revealed = false;
-                
-                for (const answer of answers) {
-                    if (!controller.foundAnswers.has(answer.id)) {
-                        // 提示一整条答案；v2 答案同时补齐尚未完成的所有要点。
-                        const partCount = controller.getAnswerPartCount(answer);
-                        controller.applyAnswerMatches([{
-                            answerId: answer.id,
-                            partIndices: Array.from({ length: partCount }, (_, index) => index),
-                        }]);
-                        revealed = true;
-                        break;
-                    }
-                }
-                
-                if (!revealed) {
-                    alert('已经没有可提示的答案了');
-                }
-            }
+            const revealed = controller.quizType === 'FILL_BLANK'
+                ? (controller.fillBlankQuiz?.blanks || []).some((_, index) => controller.revealBlank(index))
+                : (controller.answers || []).some(answer => controller.revealAnswer(answer.id));
+            if (!revealed) alert('已经没有可提示的答案了');
         }
 
         // 键盘快捷键
