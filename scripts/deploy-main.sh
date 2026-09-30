@@ -58,8 +58,20 @@ docker run --rm \
 
 (cd "$build_dir/mcp-server" && npm ci && npm test)
 (cd "$build_dir" && npm ci)
-python3 -m http.server "$browser_port" --directory "$build_dir/src/main/resources/static" >/dev/null 2>&1 &
+python3 -m http.server "$browser_port" --bind 127.0.0.1 --directory "$build_dir/src/main/resources/static" >/dev/null 2>&1 &
 static_pid=$!
+browser_ready=false
+for attempt in {1..20}; do
+    if curl --fail --silent --max-time 2 "http://127.0.0.1:$browser_port/index.html" >/dev/null; then
+        browser_ready=true
+        break
+    fi
+    sleep 1
+done
+if [[ "$browser_ready" != true ]]; then
+    echo "浏览器测试服务未就绪：127.0.0.1:$browser_port" >&2
+    exit 1
+fi
 (cd "$build_dir" && MINDPOP_BROWSER_BASE_URL="http://127.0.0.1:$browser_port" npm run test:browser -- --workers=1)
 kill "$static_pid"
 static_pid=""
