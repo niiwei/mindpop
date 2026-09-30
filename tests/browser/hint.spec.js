@@ -127,6 +127,40 @@ test('revealed typing answers cannot later become credited matches', async ({ pa
   expect(state).toEqual({found:[2],revealed:[1],score:'1/2'});
 });
 
+test('typing the last unrevealed answer after a hint completes the quiz without crediting the hint', async ({ page }) => {
+  await page.goto('/index.html');
+  const state=await page.evaluate(() => {
+    const controller=new QuizController(null);
+    controller.isQuizActive=true;
+    controller.quizType='TYPING';
+    controller.answers=[{id:1,content:'工具'},{id:2,content:'提示词'}];
+    UIRenderer.renderAnswersGrid(controller.answers,controller.foundAnswers,true,controller.foundParts);
+    controller.revealAnswer(1);
+    controller.applyAnswerMatches([{answerId:2,partIndices:[0]}]);
+    return {active:controller.isQuizActive,found:[...controller.foundAnswers],revealed:[...controller.revealedAnswers],score:document.querySelector('#score-display').textContent,
+      resultVisible:document.querySelector('#results-panel').style.display,finalScore:document.querySelector('#final-score').textContent,
+      missed:document.querySelector('#missed-answers').textContent};
+  });
+  expect(state).toEqual({active:false,found:[2],revealed:[1],score:'1/2',resultVisible:'block',finalScore:'1/2',missed:'工具'});
+});
+
+test('typing every answer without a hint still completes the quiz', async ({ page }) => {
+  await page.goto('/index.html');
+  const state=await page.evaluate(() => {
+    const controller=new QuizController(null);
+    controller.isQuizActive=true;
+    controller.quizType='TYPING';
+    controller.answers=[{id:1,content:'工具'},{id:2,content:'提示词'}];
+    let completions=0;
+    controller.endQuiz=()=>{completions++;controller.isQuizActive=false;};
+    UIRenderer.renderAnswersGrid(controller.answers,controller.foundAnswers,true,controller.foundParts);
+    controller.applyAnswerMatches([{answerId:1,partIndices:[0]}]);
+    controller.applyAnswerMatches([{answerId:2,partIndices:[0]}]);
+    return {completions,found:[...controller.foundAnswers],revealed:[...controller.revealedAnswers],score:document.querySelector('#score-display').textContent};
+  });
+  expect(state).toEqual({completions:1,found:[1,2],revealed:[],score:'2/2'});
+});
+
 test('clicking a specific empty blank reveals only that blank without credit', async ({ page }) => {
   await page.goto('/index.html');
   await page.evaluate(() => {
