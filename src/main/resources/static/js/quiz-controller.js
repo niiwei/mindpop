@@ -1204,7 +1204,7 @@ class QuizController {
         else UIRenderer.showFeedback(newlyCompleted > 0 ? '正确!' : '答对一个要点', 'success');
         this.clearInput();
         this.renderGroupProgress();
-        if (this.foundAnswers.size === this.answers.length) {
+        if (this.foundAnswers.size + this.revealedAnswers.size === this.answers.length) {
             this.endQuiz();
         }
     }
