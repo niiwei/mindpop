@@ -9,4 +9,8 @@ Type: task
 - 实现：手动输入路径以“已答对数＋已揭示数”判断是否全部处理，与提示路径一致；揭示项仍不计分。更新答题页脚本版本，避免浏览器继续使用旧缓存。
 - 验证：先新增浏览器测试复现 `completions: 0`，修复后 `MINDPOP_BROWSER_BASE_URL=http://127.0.0.1:18083 npx playwright test tests/browser --workers=1` 16/16 通过；`node --check src/main/resources/static/js/quiz-controller.js` 与 `git diff --check` 通过。测试使用本地静态页面，不代表真实登录/API/数据库验收。工作区原有 `start.sh` 删除，本轮未运行 Java 后端或完整服务验收。
 - 文档同步：现有 `spec.md` 与 `README.md` 已写明揭示不计分及全部处理后结算，行为约定未改变，无需修改；本 ticket 记录缺陷和验收。
-- 发布状态：未发布、未推送。代码版本由包含本 ticket 的提交定位。
+- 发布状态：修复已通过 PR #2 合并至 `main`；生产部署尚未完成。代码版本由 Git 历史定位。
+
+## 发布前脚本修复
+
+热修复已通过 PR #2 合并到 `main`，但两次执行生产部署脚本都在**上传前**的浏览器测试阶段停止：脚本默认将临时 Python 服务绑定到 IPv6 `::`，测试访问 `127.0.0.1`，前三项连接超时，后续项偶尔可连接。部署脚本改为明确绑定 IPv4 回环地址并等待页面可访问；须经 CI 和脚本完整验证后再记录实际发布结果。
