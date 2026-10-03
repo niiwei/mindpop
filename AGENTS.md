@@ -12,6 +12,8 @@
 ## 目录约定
 
 - `src/` 存放 Spring Boot 运行代码和静态资源，保留既有目录结构。
+- `src/main/resources/static/changelog.html` 是用户更新日志，按日期倒序简列变化，区分网站发布与个人插件本地更新；历史日志保留。
+- `.scratch/changelog-release/issues/` 保存更新日志发布记录，记录实际验证、部署 SHA 及回滚位置，不保存临时产物。
 - `mcp-server/` 存放独立 TypeScript stdio MCP 适配器；源码和测试位于 `src/`、`tests/`，`dist/` 与 `node_modules/` 不纳入 Git。
 - `scripts/` 存放可重复的本地构建和生产发布脚本；部署凭据写入 `.env.deploy`，本地启动配置写入 `.env.local`；均不纳入 Git。
 - `deploy/` 存放生产环境的反向代理与系统服务配置**副本**（如 `deploy/nginx/`），用于服务器重建或迁移时快速恢复；只存配置文本与安装说明，不存证书私钥、密钥、密码或任何机器专属凭据。
