@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>更新日志 · 敲脑壳 MindPop</title>
+    <link rel="icon" type="image/svg+xml" href="assets/img/brand/logo/主logo.svg">
+    <link rel="stylesheet" href="css/style.css?v=20260927-1">
+    <link rel="stylesheet" href="css/navigation.css">
+    <style>
+        .changelog { max-width: 720px; margin: 3rem auto; padding: 0 1.5rem; }
+        .changelog h1 { font-size: 1.8rem; margin-bottom: 2rem; }
+        .changelog section { border-top: 1px solid var(--border); padding: 1.5rem 0; }
+        .changelog h2 { font-size: 1rem; margin-bottom: 0.75rem; }
+        .changelog .scope { font-weight: 400; font-size: 0.8rem; color: var(--text-muted); margin-left: 0.75rem; }
+        .changelog ul { padding-left: 1.2rem; line-height: 1.8; font-size: 0.9rem; }
+        .changelog li { margin-bottom: 0.3rem; }
+        .nav-links { flex-wrap: wrap; gap: 1.5rem; }
+        @media (max-width: 768px) { .changelog { margin: 2rem auto; } .scope { display: block; margin: 0.4rem 0 0 !important; } }
+    </style>
+</head>
+<body>
+    <nav class="navbar" aria-label="主导航">
+        <a href="home.html" class="logo"><img src="assets/img/brand/logo/主logo.svg" alt="敲脑壳 MindPop" style="height: 32px; width: auto;"></a>
+        <div class="nav-links"><a href="home.html">首页</a><a href="changelog.html" class="active" aria-current="page">更新日志</a></div>
+    </nav>
+    <main class="changelog">
+        <h1>更新日志</h1>
+        <section>
+            <h2><time datetime="2026-10-03">2026.10.03</time><span class="scope">个人插件 · 本地更新</span></h2>
+            <ul>
+                <li>生成后可用自然语言继续修改测验，并撤销上一次 AI 修改。</li>
+                <li>修复多栏阅读页误采集资讯列表的问题，保留正文段落和列表。</li>
+            </ul>
+        </section>
+        <section>
+            <h2><time datetime="2026-09-30">2026.09.30</time><span class="scope">网站</span></h2>
+            <ul><li>修复使用提示后，手动答完最后一项仍无法完成测验的问题。</li></ul>
+        </section>
+        <section>
+            <h2><time datetime="2026-09-27">2026.09.27</time><span class="scope">网站 / 个人插件（本地）</span></h2>
+            <ul>
+                <li>鼠标移到未答出的项目上，可单独显示答案；提示和显示答案均不计为答对。</li>
+                <li>插件按标签页和页面分别保存草稿；连接与模型设置收起在底部。</li>
+                <li>生成测验分为拟题、标注必答片段和校验，支持云端与本地模型。</li>
+            </ul>
+        </section>
+    </main>
+    <script src="js/theme.js?v=20260216-9"></script>
+</body>
+</html>

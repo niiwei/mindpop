@@ -122,7 +122,8 @@ typing-quiz/
 
 - [API 文档](document_trail/docs/API.md)
 - [数据库设计](document_trail/docs/DB_SCHEMA.md)
-- [更新日志](document_trail/CHANGELOG.md)
+- [用户更新日志](src/main/resources/static/changelog.html)（首页底部及登录页入口）
+- [工程更新日志](CHANGELOG.md)
 - [开发指南](docs/internal/AI_DEVELOPMENT_GUIDE.md)
 - [Agent API 与 MCP 接入](docs/AGENT_API.md)
 - [发布与部署](DEPLOY.md)
