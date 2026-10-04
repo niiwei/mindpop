@@ -30,6 +30,7 @@
             <a href="manage.html">管理</a>
             <a href="settings.html">设置</a>
             <a href="changelog.html" class="active" aria-current="page">更新日志</a>
+            <a href="#" id="logout-link" hidden onclick="Auth.logout(); return false;" style="color: var(--error); margin-left: 2rem;">退出</a>
         </div>
     </nav>
     <main class="changelog">
@@ -58,6 +59,8 @@
             </ul>
         </section>
     </main>
+    <script src="js/api.js"></script>
+    <script>document.getElementById("logout-link").hidden = !Auth.isLoggedIn();</script>
     <script src="js/theme.js?v=20260216-9"></script>
 </body>
 </html>

@@ -13,6 +13,7 @@ import com.typingquiz.entity.QuizType;
 import com.typingquiz.repository.AgentImportRequestRepository;
 import com.typingquiz.repository.QuizGroupRepository;
 import com.typingquiz.repository.QuizRepository;
+import com.typingquiz.repository.UserRepository;
 import com.typingquiz.service.DeletionTokenService;
 import com.typingquiz.service.QuizGroupService;
 import com.typingquiz.service.QuizService;
@@ -38,6 +39,7 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/agent/v1")
 @Transactional
 public class AgentApiController {
+    private final UserRepository userRepository;
     private final QuizService quizService;
     private final QuizGroupService groupService;
     private final QuizRepository quizRepository;
@@ -51,7 +53,8 @@ public class AgentApiController {
     public AgentApiController(QuizService quizService, QuizGroupService groupService,
                               QuizRepository quizRepository, QuizGroupRepository groupRepository,
                               AgentImportRequestRepository importRepository,
-                              DeletionTokenService deletionTokenService, ObjectMapper objectMapper) {
+                              DeletionTokenService deletionTokenService, ObjectMapper objectMapper, UserRepository userRepository) {
+        this.userRepository = userRepository;
         this.quizService = quizService;
         this.groupService = groupService;
         this.quizRepository = quizRepository;
@@ -96,11 +99,12 @@ public class AgentApiController {
 
     @PostMapping("/quizzes")
     public ResponseEntity<?> createQuiz(@RequestBody QuizDTO dto, HttpServletRequest request) {
-        Long userId = userId(request);
+        Long userId = writeUserId(request);
         if (dto.getQuizType() == QuizType.FILL_BLANK) return error(HttpStatus.UNPROCESSABLE_ENTITY, "UNSUPPORTED_QUIZ_TYPE", "Agent API v1 只支持 TYPING 写入");
         if (dto.getAnswerList() == null || dto.getAnswerList().isEmpty()) return error(HttpStatus.UNPROCESSABLE_ENTITY, "INVALID_QUIZ", "TYPING 必须至少包含一条答案");
         if (dto.getAnswerList().stream().anyMatch(answer -> answer == null || answer.getContent() == null || answer.getContent().trim().isEmpty())) return error(HttpStatus.UNPROCESSABLE_ENTITY, "INVALID_QUIZ", "答案内容不能为空");
         try {
+            rejectAmbiguousGroups(dto, userId);
             Quiz quiz = quizService.createQuiz(dto, userId);
             return ResponseEntity.status(HttpStatus.CREATED).body(getQuiz(quiz.getId(), request).getBody());
         } catch (IllegalArgumentException e) {
@@ -110,7 +114,7 @@ public class AgentApiController {
 
     @PatchMapping("/quizzes/{id}")
     public ResponseEntity<?> updateQuiz(@PathVariable Long id, @RequestBody JsonNode body, HttpServletRequest request) {
-        Long userId = userId(request);
+        Long userId = writeUserId(request);
         Quiz existing = ownedQuiz(id, userId);
         if (existing.getQuizType() != QuizType.TYPING) return error(HttpStatus.UNPROCESSABLE_ENTITY, "UNSUPPORTED_QUIZ_TYPE", "Agent API v1 只支持 TYPING 写入");
         if (!body.hasNonNull("version") || existing.getVersion() == null || existing.getVersion().longValue() != body.get("version").longValue()) {
@@ -121,19 +125,28 @@ public class AgentApiController {
             if (body.has("title")) merged.setTitle(body.get("title").isNull() ? null : body.get("title").asText());
             if (body.has("description")) merged.setDescription(body.get("description").isNull() ? null : body.get("description").asText());
             if (body.has("timeLimit")) merged.setTimeLimit(body.get("timeLimit").isNull() ? null : body.get("timeLimit").asInt());
-            if (body.has("answerList")) merged.setAnswerList(objectMapper.convertValue(body.get("answerList"), objectMapper.getTypeFactory().constructCollectionType(List.class, com.typingquiz.dto.AnswerCreateDTO.class)));
+            if (body.has("answerList")) {
+                JsonNode answers = body.get("answerList");
+                if (!answers.isArray() || answers.isEmpty()) return error(HttpStatus.UNPROCESSABLE_ENTITY, "INVALID_QUIZ", "TYPING 必须至少包含一条答案");
+                merged.setAnswerList(objectMapper.convertValue(answers, objectMapper.getTypeFactory().constructCollectionType(List.class, com.typingquiz.dto.AnswerCreateDTO.class)));
+                if (merged.getAnswerList().stream().anyMatch(answer -> answer == null || answer.getContent() == null || answer.getContent().trim().isEmpty())) return error(HttpStatus.UNPROCESSABLE_ENTITY, "INVALID_QUIZ", "答案内容不能为空");
+            }
             else merged.setAnswerList(null);
+            if (body.has("answerList")) {
+                entityManager.lock(existing, javax.persistence.LockModeType.PESSIMISTIC_FORCE_INCREMENT);
+            }
             Quiz updated = quizService.updateQuiz(id, merged, userId);
             entityManager.flush();
             return getQuiz(updated.getId(), request);
         } catch (IllegalArgumentException e) {
+            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
             return error(HttpStatus.UNPROCESSABLE_ENTITY, "INVALID_QUIZ", e.getMessage());
         }
     }
 
     @PostMapping("/imports")
     public ResponseEntity<?> importQuizzes(@RequestBody JsonNode body, HttpServletRequest request) {
-        Long userId = userId(request);
+        Long userId = writeUserId(request);
         String requestId = body.hasNonNull("requestId") ? body.get("requestId").asText() : null;
         JsonNode quizzes = body.get("quizzes");
         if (requestId == null || !isUuid(requestId) || quizzes == null || !quizzes.isArray() || quizzes.size() == 0) {
@@ -157,6 +170,7 @@ public class AgentApiController {
                 if (dto.getTimeLimit() != null && dto.getTimeLimit() < 0) throw new IllegalArgumentException("时间限制不能为负数");
                 if (dto.getAnswerList().stream().anyMatch(answer -> answer == null || answer.getContent() == null || answer.getContent().trim().isEmpty())) throw new IllegalArgumentException("答案内容不能为空");
                 if (dto.getGroups() != null && dto.getGroups().stream().anyMatch(group -> group == null || group.trim().isEmpty())) throw new IllegalArgumentException("分组名称不能为空");
+                rejectAmbiguousGroups(dto, userId);
                 validated.add(dto);
             }
             for (QuizDTO dto : validated) {
@@ -185,7 +199,7 @@ public class AgentApiController {
 
     @DeleteMapping("/quizzes/{id}")
     public ResponseEntity<?> deleteQuiz(@PathVariable Long id, @RequestBody(required = false) Map<String, Object> body, HttpServletRequest request) {
-        Long userId = userId(request); Quiz quiz = ownedQuiz(id, userId);
+        Long userId = writeUserId(request); Quiz quiz = ownedQuiz(id, userId);
         if (quiz.getQuizType() != QuizType.TYPING) return error(HttpStatus.UNPROCESSABLE_ENTITY, "UNSUPPORTED_QUIZ_TYPE", "Agent API v1 只支持 TYPING 写入");
         String token = body == null ? null : String.valueOf(body.get("confirmationToken"));
         if (!deletionTokenService.verify(token, "quiz", id, userId, quiz.getVersion())) return error(HttpStatus.CONFLICT, "CONFIRMATION_INVALID", "删除预览已过期或资源已变化");
@@ -201,14 +215,14 @@ public class AgentApiController {
 
     @PostMapping("/groups")
     public ResponseEntity<?> createGroup(@RequestBody QuizGroupDTO dto, HttpServletRequest request) {
-        Long userId = userId(request);
+        Long userId = writeUserId(request);
         if (dto.getName() == null || dto.getName().trim().isEmpty() || groupRepository.existsByUserIdAndNameIgnoreCase(userId, dto.getName().trim())) return error(HttpStatus.UNPROCESSABLE_ENTITY, "GROUP_NAME_TAKEN", "分组名称已存在或为空");
         return ResponseEntity.status(HttpStatus.CREATED).body(groupMap(groupService.createGroup(dto, userId)));
     }
 
     @PatchMapping("/groups/{id}")
     public ResponseEntity<?> updateGroup(@PathVariable Long id, @RequestBody JsonNode body, HttpServletRequest request) {
-        Long userId = userId(request); QuizGroup group = ownedGroup(id, userId);
+        Long userId = writeUserId(request); QuizGroup group = ownedGroup(id, userId);
         if (!body.hasNonNull("version") || !group.getVersion().equals(body.get("version").longValue())) return groupConflict(group);
         if (body.has("name") && !body.get("name").isNull()) {
             String name = body.get("name").asText().trim();
@@ -227,16 +241,32 @@ public class AgentApiController {
 
     @DeleteMapping("/groups/{id}")
     public ResponseEntity<?> deleteGroup(@PathVariable Long id, @RequestBody(required = false) Map<String, Object> body, HttpServletRequest request) {
-        Long userId = userId(request); QuizGroup group = ownedGroup(id, userId); String token = body == null ? null : String.valueOf(body.get("confirmationToken"));
+        Long userId = writeUserId(request); QuizGroup group = ownedGroup(id, userId); String token = body == null ? null : String.valueOf(body.get("confirmationToken"));
         if (!deletionTokenService.verify(token, "group", id, userId, group.getVersion())) return error(HttpStatus.CONFLICT, "CONFIRMATION_INVALID", "删除预览已过期或资源已变化");
         groupService.deleteGroup(id, userId); return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/groups/{groupId}/quizzes/{quizId}")
-    public ResponseEntity<?> addQuiz(@PathVariable Long groupId, @PathVariable Long quizId, HttpServletRequest request) { Long userId = userId(request); QuizGroup group = ownedGroup(groupId, userId); Quiz quiz = ownedQuiz(quizId, userId); group.addQuiz(quiz); return ResponseEntity.ok(groupMap(groupRepository.save(group))); }
+    public ResponseEntity<?> addQuiz(@PathVariable Long groupId, @PathVariable Long quizId, HttpServletRequest request) { Long userId = writeUserId(request); QuizGroup group = ownedGroup(groupId, userId); Quiz quiz = ownedQuiz(quizId, userId); group.addQuiz(quiz); return ResponseEntity.ok(groupMap(groupRepository.save(group))); }
 
     @DeleteMapping("/groups/{groupId}/quizzes/{quizId}")
-    public ResponseEntity<?> removeQuiz(@PathVariable Long groupId, @PathVariable Long quizId, HttpServletRequest request) { Long userId = userId(request); QuizGroup group = ownedGroup(groupId, userId); ownedQuiz(quizId, userId); group.getQuizzes().removeIf(q -> q.getId().equals(quizId)); return ResponseEntity.ok(groupMap(groupRepository.save(group))); }
+    public ResponseEntity<?> removeQuiz(@PathVariable Long groupId, @PathVariable Long quizId, HttpServletRequest request) { Long userId = writeUserId(request); QuizGroup group = ownedGroup(groupId, userId); ownedQuiz(quizId, userId); group.getQuizzes().removeIf(q -> q.getId().equals(quizId)); return ResponseEntity.ok(groupMap(groupRepository.save(group))); }
+
+    private void rejectAmbiguousGroups(QuizDTO dto, Long userId) {
+        if (dto.getGroups() == null) return;
+        for (String name : dto.getGroups()) {
+            if (name != null && groupRepository.findByNameIgnoreCaseAndUserId(name.trim(), userId).size() > 1) {
+                throw new IllegalArgumentException("存在同名分组，请先人工处理：" + name.trim());
+            }
+        }
+    }
+
+    private Long writeUserId(HttpServletRequest request) {
+        Long id = userId(request);
+        // Serialize account writes across PATs and application instances until commit.
+        userRepository.findByIdForUpdate(id).orElseThrow(() -> new NoSuchElementException("用户不存在"));
+        return id;
+    }
 
     private Long userId(HttpServletRequest request) { return (Long) request.getAttribute(ApiAuthenticationFilter.USER_ID_ATTRIBUTE); }
     private Quiz ownedQuiz(Long id, Long userId) { return quizRepository.findByIdAndUserId(id, userId).orElseThrow(() -> new NoSuchElementException("测验不存在")); }

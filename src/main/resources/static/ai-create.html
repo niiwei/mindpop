@@ -304,12 +304,18 @@
 </head>
 <body class="ai-create-page">
     <nav class="navbar">
-        <a href="index.html" class="logo">MindPop</a>
+        <a href="home.html" class="logo">
+            <img src="assets/img/brand/logo/主logo.svg" alt="敲脑壳 MindPop" style="height: 32px; width: auto;">
+        </a>
         <div class="nav-links">
-            <a href="index.html">首页</a>
-            <a href="create.html">创建测验</a>
+            <a href="home.html">首页</a>
+            <a href="quizzes.html">测验</a>
+            <a href="create.html" class="active" aria-current="page">创建</a>
+            <a href="stats.html">看板</a>
             <a href="manage.html">管理</a>
-            <a href="changelog.html" class="nav-link">更新日志</a>
+            <a href="settings.html">设置</a>
+            <a href="changelog.html">更新日志</a>
+            <a href="#" onclick="Auth.logout()" style="color: var(--error); margin-left: 2rem;">退出</a>
         </div>
     </nav>
 

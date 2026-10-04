@@ -15,7 +15,7 @@
         .dashboard-container { max-width: 1000px; margin: 0 auto; padding: 0 2rem 4rem; }
         .dashboard-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; margin-bottom: 1.5rem; }
         @media (max-width: 768px) { .dashboard-grid { grid-template-columns: 1fr; } }
-        .dashboard-card { border: 1px solid var(--border); background: var(--bg); padding: 1.5rem; }
+        .dashboard-card { min-width: 0; border: 1px solid var(--border); background: var(--bg); padding: 1.5rem; }
         .dashboard-card.full-width { grid-column: 1 / -1; }
         .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
         .card-title { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-main); }

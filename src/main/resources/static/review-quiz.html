@@ -304,6 +304,7 @@
             border-color: #6366f1;
             transform: translateY(-2px);
         }
+    </style>
 </head>
 <body>
     <!-- 导航栏 -->
@@ -493,7 +494,10 @@
                 console.log('Initialization complete');
             } catch (error) {
                 console.error('Initialization failed:', error);
-                document.body.innerHTML = '<div style="padding: 20px; text-align: center;"><h2>页面加载失败</h2><p>' + error.message + '</p><a href="review.html">返回复习页面</a></div>';
+                document.getElementById('loading-indicator').style.display = 'none';
+                document.getElementById('quiz-container').style.display = 'none';
+                document.getElementById('error-display').style.display = 'block';
+                document.getElementById('error-message').textContent = error.message;
             }
         });
 

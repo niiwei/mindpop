@@ -10,6 +10,10 @@ import com.typingquiz.entity.User;
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
 
+    @org.springframework.data.jpa.repository.Lock(javax.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @org.springframework.data.jpa.repository.Query("SELECT u FROM User u WHERE u.id = :id")
+    Optional<User> findByIdForUpdate(@org.springframework.data.repository.query.Param("id") Long id);
+
     Optional<User> findByUsername(String username);
 
     Optional<User> findByEmail(String email);

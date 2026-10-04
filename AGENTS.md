@@ -20,6 +20,7 @@
 - `.github/workflows/` 存放 GitHub CI；合并 `main` 前必须通过 Java 与 MCP 测试。
 - `docs/agents/` 存放工程技能配置；`CONTEXT.md` 存放领域术语；`docs/adr/` 存放编号决策记录。
 - `.scratch/<feature>/` 存放可版本管理的需求和任务文档，功能名使用英文 kebab-case；需求为 `spec.md`，任务为 `issues/NN-slug.md`。
+- `.scratch/website-consistency/` 保存本轮网站一致性修复任务，沿用 `issues/NN-slug.md` 命名；保留交付记录，临时截图和测试输出交付前清理。
 - 临时产物在交付前清理，只清理本次产生的文件；历史需求和任务文档保留。
 
 ## Agent skills
