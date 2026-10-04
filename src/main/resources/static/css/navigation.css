@@ -71,7 +71,7 @@
         gap: 1rem;
     }
     
-    .navbar-nav {
+    .navbar-nav, .nav-links {
         gap: 1rem;
         flex-wrap: wrap;
         justify-content: center;
