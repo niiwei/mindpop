@@ -25,4 +25,8 @@ Type: task
 - 变更中发现并修复的回归：新增第 8 个导航项后，768px 以下导航不换行，`home`/`quizzes`/`create`/`manage`/`settings` 在 390px 视口出现横向滚动（文档宽 408px > 390px）。根因是 `navigation.css` 的移动端规则只选了 `.navbar-nav`，而主页面导航容器用的是 `.nav-links`（该规则从未生效）。改为 `.navbar-nav, .nav-links` 后，除 `stats.html` 外全部页面在 1440/768/390 三档均无横向溢出。
 - 本地验证（2026-10-04）：Java `mvn -B test` 9/9 通过（Docker `maven:3.9.9-eclipse-temurin-11`）；MCP `npm test` 3/3 通过；浏览器 `npm run test:browser -- --workers=1` 15/15 通过。另以脚本在 1440/768/390 三档遍历 12 个页面，确认“更新日志”入口在导航栏内可见、HTTP 200、无新增横向溢出。
 - 待发布：本次为功能分支提交，尚未合并 main、未部署；推送与部署已获用户授权，待执行。
+- 发布结果（2026-10-04）：PR #7（`codex/changelog-nav`）合并 main `9391bda`，用户已授权推送与部署。从 main worktree 执行 `MINDPOP_DEPLOY_CONFIG=<主工作区>/.env.deploy ./scripts/deploy-main.sh` 部署成功；服务器 `DEPLOYED_COMMIT` 回读 `9391bda485d583cf56449442b6078b201cef9981` 与合并 SHA 一致，`mindpop.service` active，回环 `index.html` 200。
+- 线上独立验证（不依赖部署脚本自检）：`https://mindpop.top/home.html`、`/changelog.html` 均 200；未认证 `GET /api/agent/v1/quizzes` 仍为 401；带登录态的真实浏览器检查显示桌面 1440 与移动 390 两档导航栏内“更新日志”可见、文档宽无横向溢出，点击后正确进入 `https://mindpop.top/changelog.html`（标题“更新日志 · 敲脑壳 MindPop”）。验证过程只读，未创建或修改任何线上测验。
+- 回滚：`/opt/mindpop/backups/20261004-122007/typing-quiz-1.1.0.jar`。无数据库迁移。
+- 说明：部署脚本运行期间远端健康检查在服务重启窗口内出现 `Connection refused` 重试，脚本按轮询等待后成功（退出码 0），该重试属正常启动窗口。
 - 已知遗留（本票未处理，均非本次引入）：`index.html` 导航缺“看板”；`ai-create.html` 导航项为另一套短列表且首页链接指向 `index.html`；`changelog.html` 未加载 `api.js` 因而无“退出”；`stats.html` 在 390px 视口存在改前即有的横向溢出（文档宽 684px）；`review-quiz.html` 数据加载失败时会用错误页替换整个 `<body>`，导航随之消失（改前行为）。
