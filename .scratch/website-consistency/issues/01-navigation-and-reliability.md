@@ -20,3 +20,15 @@ Status: completed
 - 发布状态：本地已验证，功能分支通过后合并本地 main；未推送、未部署。插件工作区保持原状；远端分支删除未执行。
 
 - 双轴审查：Standards 无硬性违反，控制器锁策略分层与导航重复为非阻断维护建议；Spec 指出历史同名分组预检遗漏，新增回归复现 200 后补正为 422，保留两组及零题库。
+
+## 发布记录 — 2026-10-04 13:17（北京时间）
+
+- 用户后续已明确授权推送与部署；原交付记录中的“未推送、未部署”为当时状态。
+- 生产部署 SHA：`8b896ceb0c1136abcf496a58cda2dd1908c4a28c`。发布前本地 `HEAD` 与 `origin/main` 一致，使用 `scripts/deploy-main.sh` 从 main 构建。
+- 发布构建：Docker Java 11 测试 14/14、打包成功；MCP 3/3、静态浏览器 22/22 通过。
+- 服务器回读：`DEPLOYED_COMMIT` 与发布 SHA 一致，`mindpop` active；Hikari `Start completed`、应用 `Started TypingQuizApplication` 均确认。
+- 公网：home/index/ai-create/changelog/stats/review-quiz 六页 HTTP 200；未认证 Agent API 返回 401。
+- 公网真实静态资源配合 mock API 的页面回归 7/7：导航、日志匿名/退出、390px 热力图局部滚动、复习失败框架与实际内容容器均通过。该结果不代表真实账户业务数据验收。
+- 无数据库迁移，未操作线上题库；真实登录、生产 MySQL 并发写入仍未验收。
+- 回滚 JAR：`/opt/mindpop/backups/20261004-131534/typing-quiz-1.1.0.jar`。
+- 本记录后续文档提交不改变生产应用版本，不重复部署。
